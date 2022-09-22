@@ -59,14 +59,52 @@ class NotesController {
     }
 
     async index(request, response) {
-        const { title, user_id } = request.query;
+        const { title, user_id, tags } = request.query;
 
-        const notes = await knex("notes")
-        .where({ user_id })
-        .whereLike("title", `%${title}%`)
-        .orderBy("title");
-        
-        return response.json({ notes })
+        let notes;
+
+        if(tags){
+            
+            //split() converte uma string num array
+            //usando como separador o caractere
+            //passado como argumento
+
+            const filteredTags = tags.split(',').map(tag => tag.trim());
+            //trim() tira os espaços antes
+            //e depois de uma string
+
+
+            notes = await knex("tags")
+            .select([
+                "notes.id",
+                "notes.title",
+                "notes.user_id"     
+            ])
+            .where("notes.user_id", user_id)
+            .whereLike("notes.title", `%${title}%`)
+            .whereIn("tags.name", filteredTags)
+            //          tabela do inner join | campos que irão interligar as tabelas
+            .innerJoin("notes", "notes.id", "tags.note_id")
+            .orderBy("notes.title")
+
+        } else {
+            notes = await knex("notes")
+            .where({ user_id })
+            .whereLike("title", `%${title}%`)
+            .orderBy("title");
+        }
+
+        const userTags = await knex("tags").where({ user_id })
+        const notesWithTags = notes.map(note => {
+            const noteTags = userTags.filter(tag => tag.note_id === note.id)
+
+            return {
+                ...note,
+                tags: noteTags
+            }
+        })
+
+        return response.json( notesWithTags )
     }
 }
 
