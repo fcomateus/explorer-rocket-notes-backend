@@ -18,7 +18,10 @@ class NotesController {
             }
         });
 
-        await knex("links").insert(linksInsert);
+        //fazendo com que os links sejam opcionais
+        if(links.length > 0) {
+            await knex("links").insert(linksInsert);
+        }
 
         const tagsInsert = tags.map(name => {
             return {
@@ -28,7 +31,10 @@ class NotesController {
             }
         });
 
-        await knex("tags").insert(tagsInsert);
+        //fazendo com que as tags sejam opcionais
+        if(tags.length > 0){
+            await knex("tags").insert(tagsInsert);
+        }
 
         return response.json();
 
@@ -87,6 +93,7 @@ class NotesController {
             .whereIn("tags.name", filteredTags)
             //          tabela do inner join | campos que irão interligar as tabelas
             .innerJoin("notes", "notes.id", "tags.note_id")
+            .groupBy("notes.id")
             .orderBy("notes.title")
 
         } else {
